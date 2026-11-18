@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Thonly Sync" />
+  <meta name="theme-color" content="#09090b" />
+  <title>Thonly Sync v13 — Studio Completo</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #09090b;
+      color: #f4f4f5;
+    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #18181b; }
+    ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 9999px; }
+    input[type="range"] { accent-color: #fafafa; }
+    canvas { touch-action: none; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-zinc-950 text-zinc-100 antialiased">
+
+  <!-- Header -->
+  <header class="border-b border-zinc-800/80 bg-zinc-950/90 backdrop-blur sticky top-0 z-30">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-lg bg-zinc-100 text-zinc-950 flex items-center justify-center font-bold text-sm">T.</div>
+        <div>
+          <h1 class="text-sm sm:text-base font-semibold tracking-tight leading-none">
+            Thonly Sync Studio <span class="ml-1 px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] font-mono text-zinc-300">v13</span>
+          </h1>
+          <p class="text-[11px] text-zinc-400 mt-0.5">Link oficial → .SRT estilo @thonly._ • PWA iPhone</p>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <button id="btnCopySrt" class="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-medium transition">
+          Copiar .SRT
+        </button>
+        <button id="btnDownloadTxt" class="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-medium transition" title="Ideal para abrir e ler no iPhone">
+          Baixar .TXT (iPhone)
+        </button>
+        <button id="btnDownloadSrt" class="px-3.5 py-1.5 rounded-lg bg-zinc-100 hover:bg-white text-zinc-950 text-xs font-semibold transition">
+          Baixar .SRT
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div id="toast" class="fixed bottom-4 right-4 z-50 hidden max-w-sm px-4 py-2.5 rounded-xl bg-zinc-900 border border-zinc-700 shadow-2xl text-xs text-zinc-100"></div>
+
+  <main class="flex-1 max-w-6xl w-full mx-auto px-4 py-6 flex flex-col gap-6">
+
+    <!-- 1. BUSCA POR LINK OU NOME -->
+    <section class="p-4 sm:p-5 rounded-2xl bg-zinc-900/70 border border-zinc-800 flex flex-col gap-3">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 class="text-sm sm:text-base font-semibold">1. Cole o link da música ou pesquise</h2>
+          <p class="text-xs text-zinc-400 mt-0.5">Aceita links do <strong>Spotify</strong>, <strong>YouTube</strong>, <strong>Musixmatch</strong> ou <strong>Artista - Música</strong>.</p>
+        </div>
+        <span id="detectedMetaBadge" class="hidden text-[11px] px-2.5 py-1 rounded-full bg-zinc-800 text-zinc-200 border border-zinc-700"></span>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-2.5">
+        <input id="linkInput" type="text" placeholder="Ex.: https://open.spotify.com/track/... ou YouTube ou BK Caminhos" class="flex-1 rounded-xl bg-zinc-950 border border-zinc-700 px-3.5 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:border-zinc-400" />
+        <button id="btnFetchLyrics" class="px-5 py-2.5 rounded-xl bg-zinc-100 hover:bg-white text-zinc-950 text-sm font-semibold transition shrink-0">
+          Gerar .SRT Oficial
+        </button>
+      </div>
+
+      <div id="resultsWrap" class="hidden flex flex-col gap-2 pt-2">
+        <p class="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">Versões encontradas (clique para carregar na .SRT):</p>
+        <div id="resultsList" class="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1"></div>
+      </div>
+
+      <div id="historyWrap" class="hidden flex flex-wrap items-center gap-1.5 pt-2 border-t border-zinc-800/80">
+        <span class="text-[11px] text-zinc-400 mr-1">Recentes:</span>
+        <div id="historyChips" class="flex flex-wrap items-center gap-1.5"></div>
+      </div>
+    </section>
+
+    <!-- WORKSPACE -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+      <!-- 2. EDITOR .SRT & FERRAMENTAS @thonly._ -->
+      <section class="lg:col-span-7 bg-zinc-900/60 border border-zinc-800 rounded-2xl p-4 sm:p-5 flex flex-col gap-4">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 class="text-sm font-semibold">2. Legenda .SRT Gerada (<span id="cueCount">0</span> blocos)</h2>
+            <p class="text-[11px] text-zinc-400">Edite os tempos, aplique estilo @thonly._ ou transforme em karaoke.</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-1.5">
+            <button id="btnToggleThonlyStyle" class="px-2.5 py-1 rounded bg-zinc-100 text-zinc-950 text-[11px] font-semibold transition" title="Minúsculas + apenas acentos essenciais">
+              estilo @thonly._: ON
+            </button>
+            <button id="btnCleanAdlibs" class="px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-[11px] font-medium transition" title="Remove (yeah), [Refrão], (woo), etc.">
+              Limpar ad-libs
+            </button>
+            <button id="btnToggleDict" class="px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-[11px] font-medium transition">
+              Abreviações
+            </button>
+          </div>
+        </div>
+
+        <!-- Dicionário de Abreviações Editável -->
+        <div id="dictDrawer" class="hidden p-3 rounded-xl bg-zinc-950 border border-zinc-800 flex flex-col gap-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-zinc-200">Dicionário de abreviações (@thonly._)</span>
+            <button id="btnApplyDict" class="px-2.5 py-1 rounded-lg bg-zinc-100 hover:bg-white text-zinc-950 text-[11px] font-semibold transition">
+              Aplicar agora
+            </button>
+          </div>
+          <textarea id="dictTextarea" rows="2" class="w-full rounded-lg bg-zinc-900 border border-zinc-700 p-2 text-xs font-mono text-zinc-200 focus:outline-none focus:border-zinc-400" placeholder="você=vc, para=pra, estou=tô"></textarea>
+          <p class="text-[10px] text-zinc-500">Separe por vírgula no formato <code>palavra=abreviação</code>. Salvo automaticamente no seu navegador.</p>
+        </div>
+
+        <!-- Cortador de Trecho + Quebra / Modo Karaoke -->
+        <div class="p-3 rounded-xl bg-zinc-950/90 border border-zinc-800 flex flex-col gap-2.5">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex flex-wrap items-center gap-1.5 text-xs">
+              <span class="font-semibold text-zinc-200">Cortar trecho:</span>
+              <input id="trimStartInput" type="text" value="00:10" placeholder="00:10" class="w-16 rounded-lg bg-zinc-900 border border-zinc-700 px-2 py-1 text-xs font-mono text-center text-zinc-100" />
+              <span class="text-zinc-500">→</span>
+              <input id="trimEndInput" type="text" value="00:40" placeholder="00:40" class="w-16 rounded-lg bg-zinc-900 border border-zinc-700 px-2 py-1 text-xs font-mono text-center text-zinc-100" />
+              <button id="btnTrimZero" class="px-2.5 py-1 rounded-lg bg-zinc-100 hover:bg-white text-zinc-950 text-[11px] font-semibold transition">
+                Cortar e Zerar (00:00)
+              </button>
+            </div>
+            <div class="flex flex-wrap items-center gap-1.5 text-xs">
+              <span class="text-[11px] text-zinc-400">Bloco:</span>
+              <select id="maxWordsSelect" class="rounded-lg bg-zinc-900 border border-zinc-700 px-2 py-1 text-[11px] text-zinc-100">
+                <option value="1">1 palavra (Karaoke)</option>
+                <option value="2">2 palavras (Trap/Phonk)</option>
+                <option value="4">4 palavras</option>
+                <option value="5" selected>5 palavras</option>
+                <option value="6">6 palavras</option>
+              </select>
+              <button id="btnSplitLongCues" class="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-[11px] font-medium transition">
+                Dividir
+              </button>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-zinc-800/80 text-[11px]">
+            <span class="text-zinc-400">Ajuste fino global:</span>
+            <div class="flex items-center gap-1">
+              <button data-nudge="-1.0" class="nudge-all-btn px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 font-mono">-1s</button>
+              <button data-nudge="-0.2" class="nudge-all-btn px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 font-mono">-0.2s</button>
+              <button data-nudge="0.2" class="nudge-all-btn px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 font-mono">+0.2s</button>
+              <button data-nudge="1.0" class="nudge-all-btn px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 font-mono">+1s</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="cueList" class="flex flex-col gap-2 max-h-[420px] overflow-y-auto pr-1"></div>
+
+        <div class="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-zinc-800">
+          <button id="btnAddCue" class="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-medium transition">+ Adicionar verso</button>
+          <label class="cursor-pointer px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-medium transition">
+            Importar .SRT
+            <input id="srtInput" type="file" accept=".srt,.vtt,.txt" class="hidden" />
+          </label>
+        </div>
+      </section>
+
+      <!-- 3. PREVIEW VÍDEO (Arrastar altura + Fade suave + P&B + Saturação) -->
+      <section class="lg:col-span-5 bg-zinc-900/60 border border-zinc-800 rounded-2xl p-4 flex flex-col gap-3">
+        <div class="flex items-center justify-between gap-2">
+          <div>
+            <h2 class="text-sm font-semibold">3. Prévia no Vídeo</h2>
+            <p class="text-[10px] text-zinc-400">Arraste a legenda na tela para ajustar a altura.</p>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button data-aspect="9:16" class="aspect-btn px-2 py-1 rounded bg-zinc-100 text-zinc-950 text-[10px] font-semibold">9:16</button>
+            <button data-aspect="4:3" class="aspect-btn px-2 py-1 rounded bg-zinc-800 text-zinc-300 text-[10px] font-medium">4:3</button>
+            <label class="cursor-pointer px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-[11px] font-medium">
+              + Vídeo
+              <input id="videoInput" type="file" accept="video/*" class="hidden" />
+            </label>
+          </div>
+        </div>
+
+        <div id="dropZone" class="relative w-full aspect-[9/16] max-h-[380px] mx-auto rounded-xl overflow-hidden bg-zinc-950 border border-zinc-800 flex items-center justify-center">
+          <video id="sourceVideo" class="hidden" playsinline crossorigin="anonymous"></video>
+          <canvas id="previewCanvas" width="720" height="1280" class="w-full h-full object-contain cursor-ns-resize"></canvas>
+          <div id="yHeightBadge" class="pointer-events-none absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full bg-black/70 text-[10px] font-mono text-zinc-300 border border-white/10">
+            Altura Y: 80%
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2.5">
+          <button id="btnPlayPause" class="w-8 h-8 rounded-lg bg-zinc-100 hover:bg-white text-zinc-950 text-xs font-bold shrink-0">▶</button>
+          <input id="seekBar" type="range" min="0" max="100" step="0.05" value="0" class="flex-1 h-1.5 bg-zinc-700 rounded-lg cursor-pointer" />
+          <span id="timeLabel" class="text-[11px] font-mono text-zinc-400 tabular-nums">00:00.0</span>
+        </div>
+
+        <!-- Controles Visuais -->
+        <div class="grid grid-cols-2 gap-2 pt-2 border-t border-zinc-800 text-xs">
+          <button id="toggleBW" class="py-1.5 px-2.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-left flex items-center justify-between">
+            <span>Filtro P&amp;B</span>
+            <span id="bwStatus" class="font-mono text-[10px] text-zinc-400">OFF</span>
+          </button>
+          <button id="toggleFade" class="py-1.5 px-2.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-left flex items-center justify-between">
+            <span>Fade suave</span>
+            <span id="fadeStatus" class="font-mono text-[10px] text-emerald-400">ON</span>
+          </button>
+          <div class="flex items-center gap-2 col-span-2">
+            <span class="text-[11px] text-zinc-400 w-16">Saturação</span>
+            <input id="saturationRange" type="range" min="0" max="200" value="100" class="flex-1 h-1.5 bg-zinc-700 rounded-lg" />
+            <span id="saturationVal" class="text-[11px] font-mono w-9 text-right">100%</span>
+          </div>
+          <div class="flex items-center gap-2 col-span-2">
+            <span class="text-[11px] text-zinc-400 w-16">Fonte iOS</span>
+            <input id="fontSizeRange" type="range" min="14" max="44" value="24" class="flex-1 h-1.5 bg-zinc-700 rounded-lg" />
+            <span id="fontSizeVal" class="text-[11px] font-mono w-9 text-right">24px</span>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <script>
+    // --- PWA iPhone Setup (Manifest + Ícone dinâmicos para Tela Cheia no iOS) ---
+    (function setupPwaMeta() {
+      try {
+        const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#09090b"/><text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" fill="#fafafa" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-weight="800" font-size="250">T.</text></svg>`;
+        const iconUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgIcon);
+
+        const appleIcon = document.createElement('link');
+        appleIcon.rel = 'apple-touch-icon';
+        appleIcon.href = iconUrl;
+        document.head.appendChild(appleIcon);
+
+        const manifest = {
+          name: 'Thonly Sync Studio',
+          short_name: 'Thonly Sync',
+          start_url: './',
+          display: 'standalone',
+          background_color: '#09090b',
+          theme_color: '#09090b',
+          icons: [{ src: iconUrl, sizes: '512x512', type: 'image/svg+xml' }]
+        };
+        const mLink = document.createElement('link');
+        mLink.rel = 'manifest';
+        mLink.href = 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(JSON.stringify(manifest));
+        document.head.appendChild(mLink);
+      } catch (_) {}
+    })();
+
+    const DEFAULT_DICT = 'você=vc, voces=vcs, para=pra, estou=tô, está=tá, estamos=tamo, comigo=cmg, contigo=ctg, porque=pq, por que=pq, também=tbm, muito=mt, tudo=td, quando=qnd, hoje=hj, agora=agr';
+
+    const state = {
+      hasVideo: false,
+      isPlaying: false,
+      currentTime: 0,
+      duration: 30,
+      aspect: '9:16',
+      bw: false,
+      fade: true,
+      saturation: 100,
+      fontSize: 24,
+      yRatio: 0.80,
+      thonlyStyle: true,
+      dictText: DEFAULT_DICT,
+      cues: [
+        { id: 1, start: 10.0, end: 11.8, text: 'eles disseram que meu ego é grande' },
+        { id: 2, start: 11.9, end: 13.6, text: 'que eu sou um ninja do tipo arrogante' },
+        { id: 3, start: 13.7, end: 15.5, text: 'que sentem medo só pelo semblante' }
+      ],
+      nextId: 4
+    };
+
+    const toastEl = document.getElementById('toast');
+    const linkInput = document.getElementById('linkInput');
+    const btnFetchLyrics = document.getElementById('btnFetchLyrics');
+    const detectedMetaBadge = document.getElementById('detectedMetaBadge');
+    const resultsWrap = document.getElementById('resultsWrap');
+    const resultsList = document.getElementById('resultsList');
+    const cueListEl = document.getElementById('cueList');
+    const cueCountEl = document.getElementById('cueCount');
+    const dictTextarea = document.getElementById('dictTextarea');
+
+    const videoEl = document.getElementById('sourceVideo');
+    const canvas = document.getElementById('previewCanvas');
+    const ctx = canvas.getContext('2d');
+    const dropZone = document.getElementById('dropZone');
+    const btnPlayPause = document.getElementById('btnPlayPause');
+    const seekBar = document.getElementById('seekBar');
+    const timeLabel = document.getElementById('timeLabel');
+    const yHeightBadge = document.getElementById('yHeightBadge');
+    let lastTick = performance.now();
+
+    function showToast(msg) {
+      toastEl.textContent = msg;
+      toastEl.classList.remove('hidden');
+      clearTimeout(toastEl._t);
+      toastEl._t = setTimeout(() => toastEl.classList.add('hidden'), 3600);
+    }
+
+    function formatTimeShort(sec) {
+      const s = Math.max(0, sec);
+      const mins = Math.floor(s / 60);
+      const secs = (s % 60).toFixed(1).padStart(4, '0');
+      return `${String(mins).padStart(2, '0')}:${secs}`;
+    }
+
+    function formatSrtTime(sec) {
+      const s = Math.max(0, sec);
+      const hrs = Math.floor(s / 3600);
+      const mins = Math.floor((s % 3600) / 60);
+      const secs = Math.floor(s % 60);
+      const ms = Math.round((s - Math.floor(s)) * 1000);
+      return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')},${String(ms).padStart(3, '0')}`;
+    }
+
+    // --- Estilo @thonly._ + Dicionário de Abreviações ---
+    const ESSENTIAL_ACCENTS = new Set([
+      'é', 'tá', 'só', 'já', 'dá', 'vê', 'pô', 'nó', 'pó', 'mãe', 'pão', 'cão',
+      'não', 'são', 'tão', 'vão', 'dão', 'mão', 'chão', 'irmão', 'então', 'coração', 'visão', 'razão', 'ilusão', 'paixão', 'solidão', 'tô', 'têm', 'vêm', 'pôr', 'qué'
+    ]);
+
+    function stripNonEssentialAccents(word) {
+      const cleanCheck = word.toLowerCase().replace(/[^a-záàâãéêíóôõúç]/g, '');
+      if (ESSENTIAL_ACCENTS.has(cleanCheck)) return word;
+      return word
+        .replace(/[áàâ]/g, 'a')
+        .replace(/[éê]/g, 'e')
+        .replace(/[í]/g, 'i')
+        .replace(/[óô]/g, 'o')
+        .replace(/[ú]/g, 'u');
+    }
+
+    function applyAbbreviations(str) {
+      let out = str;
+      const pairs = String(state.dictText || '').split(',').map(p => p.trim()).filter(Boolean);
+      for (const pair of pairs) {
+        const eqIdx = pair.indexOf('=');
+        if (eqIdx <= 0) continue;
+        const from = pair.slice(0, eqIdx).trim();
+        const to = pair.slice(eqIdx + 1).trim();
+        if (!from || !to) continue;
+        const esc = from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const re = new RegExp(`(^|\\s|[.,!?;:"'()\\[\\]])${esc}(?=$|\\s|[.,!?;:"'()\\[\\]])`, 'gi');
+        out = out.replace(re, `$1${to}`);
+      }
+      return out;
+    }
+
+    function formatThonlyText(text) {
+      if (!state.thonlyStyle) return text;
+      const withAbbr = applyAbbreviations(text.toLowerCase());
+      return withAbbr
+        .split(/(\s+)/)
+        .map(tok => (/\s+/.test(tok) ? tok : stripNonEssentialAccents(tok)))
+        .join('')
+        .replace(/[.]+$/g, '')
+        .trim();
+    }
+
+    function buildSrtString() {
+      const sorted = [...state.cues].sort((a, b) => a.start - b.start);
+      return sorted.map((c, idx) => `${idx + 1}\n${formatSrtTime(c.start)} --> ${formatSrtTime(c.end)}\n${c.text}`).join('\n\n');
+    }
+
+    function parseLrcToCues(lrcText, durationSec = 0) {
+      const regex = /\[(\d{1,2}):(\d{2})(?:[.:](\d{1,3}))?\]/g;
+      const items = [];
+      for (const line of lrcText.split('\n')) {
+        const matches = [...line.matchAll(regex)];
+        if (!matches.length) continue;
+        const text = line.replace(regex, '').trim();
+        if (!text) continue;
+        for (const m of matches) {
+          const mins = parseInt(m[1], 10);
+          const secs = parseInt(m[2], 10);
+          const ms = parseInt((m[3] || '0').padEnd(3, '0').slice(0, 3), 10);
+          items.push({ start: mins * 60 + secs + ms / 1000, text });
+        }
+      }
+      items.sort((a, b) => a.start - b.start);
+      return items.map((it, i) => ({
+        id: state.nextId++,
+        start: Number(it.start.toFixed(2)),
+        end: Number((i + 1 < items.length ? Math.max(it.start + 0.4, items[i + 1].start - 0.05) : Math.max(it.start + 3, durationSec || it.start + 3.5)).toFixed(2)),
+        text: it.text
+      }));
+    }
+
+    function cleanTitle(raw) {
+      return raw
+        .replace(/[\(\[\{].*?(official|clipe|video|audio|lyric|visualizer|hd|4k|prod\.|ao vivo).*?[\)\]\}]/gi, '')
+        .replace(/\s*\|\s*.*$/, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    async function resolveDirectlyInBrowser(input) {
+      let query = input.trim();
+      let source = 'Busca';
+      if (query.includes('open.spotify.com')) {
+        source = 'Spotify';
+        try {
+          const r = await fetch(`https://open.spotify.com/oembed?url=${encodeURIComponent(query)}`);
+          if (r.ok) {
+            const j = await r.json();
+            if (j.title) query = j.title.replace(/song and lyrics by/i, '');
+          }
+        } catch (_) {}
+      } else if (query.includes('youtube.com') || query.includes('youtu.be')) {
+        source = 'YouTube';
+        try {
+          const r = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(query)}&format=json`);
+          if (r.ok) {
+            const j = await r.json();
+            if (j.title) query = cleanTitle(j.title);
+          }
+        } catch (_) {}
+      } else if (query.includes('musixmatch.com')) {
+        source = 'Musixmatch';
+        try {
+          const u = new URL(query);
+          const parts = u.pathname.split('/').filter(Boolean);
+          const idx = parts.indexOf('lyrics');
+          if (idx !== -1 && parts[idx + 2]) {
+            query = `${parts[idx + 1].replace(/-/g, ' ')} ${parts[idx + 2].replace(/-/g, ' ')}`;
+          }
+        } catch (_) {}
+      }
+
+      const resp = await fetch(`https://lrclib.net/api/search?q=${encodeURIComponent(query)}`);
+      if (!resp.ok) throw new Error('Falha ao consultar base de letras.');
+      const items = await resp.json();
+      const results = (Array.isArray(items) ? items : [])
+        .filter(it => it.syncedLyrics || it.plainLyrics)
+        .map(it => ({
+          id: it.id,
+          trackName: it.trackName || '',
+          artistName: it.artistName || '',
+          albumName: it.albumName || '',
+          duration: Number(it.duration || 0),
+          hasSynced: Boolean(it.syncedLyrics),
+          cues: it.syncedLyrics ? parseLrcToCues(it.syncedLyrics, Number(it.duration || 0)) : [],
+          plainLyrics: it.plainLyrics || ''
+        }))
+        .sort((a, b) => (a.hasSynced === b.hasSynced ? 0 : a.hasSynced ? -1 : 1))
+        .slice(0, 12);
+
+      return { meta: { source, query }, results };
+    }
+
+    async function handleFetchLyrics() {
+      const val = linkInput.value.trim();
+      if (!val) return showToast('Cole um link ou digite o nome da música.');
+      btnFetchLyrics.disabled = true;
+      btnFetchLyrics.textContent = 'Buscando...';
+      try {
+        let data = null;
+        try {
+          const resp = await fetch('/api/resolve-lyrics', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ input: val })
+          });
+          if (resp.ok) data = await resp.json();
+        } catch (_) {}
+
+        if (!data) {
+          data = await resolveDirectlyInBrowser(val);
+        }
+
+        if (data.meta && data.meta.query) {
+          detectedMetaBadge.textContent = `${data.meta.source}: ${data.meta.query}`;
+          detectedMetaBadge.classList.remove('hidden');
+        }
+
+        const results = data.results || [];
+        if (!results.length) {
+          resultsWrap.classList.add('hidden');
+          showToast('Nenhuma letra sincronizada encontrada. Tente digitar "Artista - Música".');
+          return;
+        }
+
+        renderResults(results);
+        const firstSynced = results.find(r => r.hasSynced) || results[0];
+        applyResult(firstSynced);
+      } catch (err) {
+        showToast(`Erro: ${err.message}`);
+      } finally {
+        btnFetchLyrics.disabled = false;
+        btnFetchLyrics.textContent = 'Gerar .SRT Oficial';
+      }
+    }
+
+    // --- Persistência localStorage ---
+    const STORAGE_CUES_KEY = 'thonly_sync_v13_cues';
+    const STORAGE_HIST_KEY = 'thonly_sync_v13_history';
+    const STORAGE_DICT_KEY = 'thonly_sync_v13_dict';
+
+    function saveStateLocal() {
+      try {
+        localStorage.setItem(STORAGE_CUES_KEY, JSON.stringify(state.cues));
+        localStorage.setItem(STORAGE_DICT_KEY, state.dictText);
+      } catch (_) {}
+    }
+
+    function loadStateLocal() {
+      try {
+        const savedDict = localStorage.getItem(STORAGE_DICT_KEY);
+        if (savedDict !== null) state.dictText = savedDict;
+        dictTextarea.value = state.dictText;
+
+        const raw = localStorage.getItem(STORAGE_CUES_KEY);
+        if (raw) {
+          const arr = JSON.parse(raw);
+          if (Array.isArray(arr) && arr.length) {
+            state.cues = arr.map(c => ({ id: state.nextId++, start: Number(c.start) || 0, end: Number(c.end) || 1, text: String(c.text || '') }));
+          }
+        }
+      } catch (_) {}
+      renderHistory();
+    }
+
+    function addToHistory(item) {
+      if (!item || !item.trackName) return;
+      try {
+        const raw = localStorage.getItem(STORAGE_HIST_KEY);
+        let hist = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(hist)) hist = [];
+        hist = hist.filter(h => !(h.trackName === item.trackName && h.artistName === item.artistName));
+        hist.unshift({
+          trackName: item.trackName,
+          artistName: item.artistName || '',
+          duration: item.duration || 0,
+          hasSynced: Boolean(item.hasSynced),
+          cues: (item.cues || []).slice(0, 150),
+          plainLyrics: item.plainLyrics || ''
+        });
+        localStorage.setItem(STORAGE_HIST_KEY, JSON.stringify(hist.slice(0, 8)));
+      } catch (_) {}
+      renderHistory();
+    }
+
+    function renderHistory() {
+      const wrap = document.getElementById('historyWrap');
+      const chips = document.getElementById('historyChips');
+      if (!wrap || !chips) return;
+      let hist = [];
+      try {
+        const raw = localStorage.getItem(STORAGE_HIST_KEY);
+        hist = raw ? JSON.parse(raw) : [];
+      } catch (_) { hist = []; }
+      if (!Array.isArray(hist) || !hist.length) {
+        wrap.classList.add('hidden');
+        return;
+      }
+      wrap.classList.remove('hidden');
+      chips.innerHTML = '';
+      hist.forEach(item => {
+        const btn = document.createElement('button');
+        btn.className = 'px-2.5 py-1 rounded-full bg-zinc-950 hover:bg-zinc-800 border border-zinc-700 text-[11px] text-zinc-200 transition';
+        btn.textContent = item.artistName ? `${item.trackName} — ${item.artistName}` : item.trackName;
+        btn.addEventListener('click', () => applyResult(item));
+        chips.appendChild(btn);
+      });
+    }
+
+    // --- Limpar Ad-libs & Dicionário ---
+    document.getElementById('btnCleanAdlibs').addEventListener('click', () => {
+      let removedCount = 0;
+      const cleaned = [];
+      for (const c of state.cues) {
+        const nextText = c.text
+          .replace(/\([^)]*\)/g, '')
+          .replace(/\[[^\]]*\]/g, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+        if (!nextText) {
+          removedCount++;
+        } else {
+          if (nextText !== c.text) removedCount++;
+          cleaned.push({ ...c, text: nextText });
+        }
+      }
+      state.cues = cleaned;
+      renderCueList();
+      showToast(removedCount > 0 ? `Ad-libs/marcações limpos em ${removedCount} bloco(s)!` : 'Nenhum ad-lib entre parênteses/colchetes encontrado.');
+    });
+
+    document.getElementById('btnToggleDict').addEventListener('click', () => {
+      document.getElementById('dictDrawer').classList.toggle('hidden');
+    });
+
+    dictTextarea.addEventListener('input', () => {
+      state.dictText = dictTextarea.value;
+      saveStateLocal();
+    });
+
+    document.getElementById('btnApplyDict').addEventListener('click', () => {
+      state.dictText = dictTextarea.value;
+      state.cues.forEach(c => { c.text = formatThonlyText(c.text); });
+      renderCueList();
+      showToast('Abreviações aplicadas nas legendas!');
+    });
+
+    // --- Cortar Trecho e Zerar para 00:00 ---
+    function parseFlexibleTime(str) {
+      const clean = String(str || '').trim().replace(',', '.');
+      if (!clean) return NaN;
+      if (clean.includes(':')) {
+        const p = clean.split(':').map(Number);
+        if (p.some(isNaN)) return NaN;
+        if (p.length === 2) return p[0] * 60 + p[1];
+        if (p.length === 3) return p[0] * 3600 + p[1] * 60 + p[2];
+      }
+      return parseFloat(clean);
+    }
+
+    document.getElementById('btnTrimZero').addEventListener('click', () => {
+      const s = parseFlexibleTime(document.getElementById('trimStartInput').value);
+      const e = parseFlexibleTime(document.getElementById('trimEndInput').value);
+      if (isNaN(s) || isNaN(e) || e <= s) {
+        showToast('Informe um início e fim válidos (ex.: 00:10 e 00:40).');
+        return;
+      }
+      const filtered = state.cues
+        .filter(c => c.end > s && c.start < e)
+        .map(c => {
+          const ns = Math.max(0, c.start - s);
+          const ne = Math.min(e - s, Math.max(ns + 0.3, c.end - s));
+          return { id: state.nextId++, start: Number(ns.toFixed(2)), end: Number(ne.toFixed(2)), text: c.text };
+        });
+      if (!filtered.length) {
+        showToast('Nenhuma legenda encontrada nesse intervalo.');
+        return;
+      }
+      state.cues = filtered;
+      renderCueList();
+      showToast(`Trecho cortado e zerado! (${filtered.length} blocos de 00:00 a ${formatTimeShort(e - s)})`);
+    });
+
+    // --- Dividir em blocos curtos ou Karaoke (1-2 palavras) ---
+    document.getElementById('btnSplitLongCues').addEventListener('click', () => {
+      const maxW = parseInt(document.getElementById('maxWordsSelect').value, 10) || 5;
+      const nextCues = [];
+      let splitCount = 0;
+      for (const c of state.cues) {
+        const words = c.text.trim().split(/\s+/).filter(Boolean);
+        if (words.length <= maxW) {
+          nextCues.push(c);
+          continue;
+        }
+        splitCount++;
+        const chunks = [];
+        for (let i = 0; i < words.length; i += maxW) {
+          chunks.push(words.slice(i, i + maxW).join(' '));
+        }
+        const totalDur = Math.max(0.25, c.end - c.start);
+        const totalChars = chunks.reduce((acc, ch) => acc + ch.length, 0) || 1;
+        let curT = c.start;
+        chunks.forEach((ch, idx) => {
+          const sliceDur = (ch.length / totalChars) * totalDur;
+          const endT = idx === chunks.length - 1 ? c.end : Math.min(c.end, curT + sliceDur - 0.02);
+          nextCues.push({
+            id: state.nextId++,
+            start: Number(curT.toFixed(2)),
+            end: Number(Math.max(curT + 0.12, endT).toFixed(2)),
+            text: ch
+          });
+          curT += sliceDur;
+        });
+      }
+      state.cues = nextCues;
+      renderCueList();
+      if (splitCount > 0) {
+        showToast(maxW <= 2 ? `Modo Karaoke ativado! (${nextCues.length} blocos de ${maxW} palavra(s))` : `${splitCount} verso(s) dividido(s) em blocos de até ${maxW} palavras!`);
+      } else {
+        showToast('Todos os blocos já estão nesse tamanho.');
+      }
+    });
+
+    function applyResult(item) {
+      addToHistory(item);
+      if (item.hasSynced && item.cues.length) {
+        state.cues = item.cues.map(c => ({ id: state.nextId++, start: c.start, end: c.end, text: formatThonlyText(c.text) }));
+        if (item.duration > 0 && !state.hasVideo) state.duration = item.duration;
+        renderCueList();
+        showToast(`Carregada: ${item.trackName} (${item.cues.length} versos no tempo oficial)`);
+      } else if (item.plainLyrics) {
+        const lines = item.plainLyrics.split('\n').map(l => l.trim()).filter(Boolean);
+        const dur = item.duration || Math.max(30, lines.length * 2.5);
+        const step = dur / Math.max(1, lines.length);
+        state.cues = lines.map((text, idx) => ({
+          id: state.nextId++,
+          start: Number((idx * step).toFixed(2)),
+          end: Number(((idx + 1) * step - 0.08).toFixed(2)),
+          text: formatThonlyText(text)
+        }));
+        renderCueList();
+        showToast('Essa faixa só tinha letra sem tempo; distribuída uniformemente.');
+      }
+    }
+
+    function renderResults(results) {
+      resultsWrap.classList.remove('hidden');
+      resultsList.innerHTML = '';
+      results.forEach(item => {
+        const btn = document.createElement('button');
+        btn.className = 'text-left p-2.5 rounded-xl bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 flex items-center justify-between gap-2 transition';
+        btn.innerHTML = `
+          <div class="min-w-0">
+            <p class="text-xs font-semibold text-zinc-100 truncate">${item.trackName}</p>
+            <p class="text-[11px] text-zinc-400 truncate">${item.artistName}${item.duration ? ' • ' + formatTimeShort(item.duration) : ''}</p>
+          </div>
+          <span class="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+            item.hasSynced ? 'bg-emerald-950 text-emerald-300 border border-emerald-700/50' : 'bg-zinc-800 text-zinc-400'
+          }">${item.hasSynced ? 'Tempo Oficial' : 'Só Texto'}</span>
+        `;
+        btn.addEventListener('click', () => applyResult(item));
+        resultsList.appendChild(btn);
+      });
+    }
+
+    btnFetchLyrics.addEventListener('click', handleFetchLyrics);
+    linkInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleFetchLyrics(); });
+
+    // Cue List
+    function renderCueList() {
+      state.cues.sort((a, b) => a.start - b.start);
+      cueCountEl.textContent = String(state.cues.length);
+      saveStateLocal();
+      cueListEl.innerHTML = '';
+      state.cues.forEach((cue, idx) => {
+        const row = document.createElement('div');
+        row.className = 'p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 flex flex-col gap-1.5';
+        row.innerHTML = `
+          <div class="flex items-center justify-between gap-2 text-[11px]">
+            <div class="flex items-center gap-1.5">
+              <button data-action="seek" data-id="${cue.id}" class="px-1.5 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 font-mono">#${idx + 1} ▶</button>
+              <input data-field="start" data-id="${cue.id}" type="number" step="0.1" min="0" value="${cue.start.toFixed(1)}" class="w-16 rounded bg-zinc-900 border border-zinc-700 px-1.5 py-0.5 font-mono text-zinc-200" />
+              <span class="text-zinc-500">→</span>
+              <input data-field="end" data-id="${cue.id}" type="number" step="0.1" min="0" value="${cue.end.toFixed(1)}" class="w-16 rounded bg-zinc-900 border border-zinc-700 px-1.5 py-0.5 font-mono text-zinc-200" />
+            </div>
+            <button data-action="delete" data-id="${cue.id}" class="text-zinc-500 hover:text-red-400 px-1">✕</button>
+          </div>
+          <input data-field="text" data-id="${cue.id}" type="text" value="${cue.text.replace(/"/g, '&quot;')}" class="w-full rounded-lg bg-zinc-900 border border-zinc-800 px-2.5 py-1.5 text-xs text-zinc-100 focus:outline-none focus:border-zinc-500" />
+        `;
+        cueListEl.appendChild(row);
+      });
+    }
+
+    cueListEl.addEventListener('input', (e) => {
+      const id = parseInt(e.target.dataset.id, 10);
+      const cue = state.cues.find(c => c.id === id);
+      if (!cue) return;
+      const f = e.target.dataset.field;
+      if (f === 'text') cue.text = e.target.value;
+      if (f === 'start') cue.start = Math.max(0, parseFloat(e.target.value) || 0);
+      if (f === 'end') cue.end = Math.max(cue.start + 0.1, parseFloat(e.target.value) || 0.5);
+      saveStateLocal();
+    });
+
+    cueListEl.addEventListener('click', (e) => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      const id = parseInt(btn.dataset.id, 10);
+      const idx = state.cues.findIndex(c => c.id === id);
+      if (idx === -1) return;
+      if (btn.dataset.action === 'delete') {
+        state.cues.splice(idx, 1);
+        renderCueList();
+      } else if (btn.dataset.action === 'seek') {
+        state.currentTime = state.cues[idx].start;
+        if (state.hasVideo) videoEl.currentTime = state.currentTime;
+        seekBar.value = state.currentTime;
+        timeLabel.textContent = formatTimeShort(state.currentTime);
+      }
+    });
+
+    document.getElementById('btnToggleThonlyStyle').addEventListener('click', (e) => {
+      state.thonlyStyle = !state.thonlyStyle;
+      const btn = e.currentTarget;
+      if (state.thonlyStyle) {
+        btn.textContent = 'estilo @thonly._: ON';
+        btn.classList.add('bg-zinc-100', 'text-zinc-950', 'font-semibold');
+        btn.classList.remove('bg-zinc-800', 'text-zinc-300', 'font-medium');
+        state.cues.forEach(c => { c.text = formatThonlyText(c.text); });
+        renderCueList();
+        showToast('estilo @thonly._ aplicado nas legendas!');
+      } else {
+        btn.textContent = 'estilo @thonly._: OFF';
+        btn.classList.remove('bg-zinc-100', 'text-zinc-950', 'font-semibold');
+        btn.classList.add('bg-zinc-800', 'text-zinc-300', 'font-medium');
+        showToast('estilo automático desativado para próximas buscas.');
+      }
+    });
+
+    document.querySelectorAll('.nudge-all-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const d = parseFloat(btn.dataset.nudge);
+        state.cues.forEach(c => {
+          c.start = Number(Math.max(0, c.start + d).toFixed(2));
+          c.end = Number(Math.max(c.start + 0.15, c.end + d).toFixed(2));
+        });
+        renderCueList();
+        showToast(`Legendas ajustadas em ${d > 0 ? '+' : ''}${d}s`);
+      });
+    });
+
+    document.getElementById('btnAddCue').addEventListener('click', () => {
+      const start = Number(state.currentTime.toFixed(1));
+      state.cues.push({ id: state.nextId++, start, end: Number((start + 2.5).toFixed(1)), text: 'novo verso' });
+      renderCueList();
+    });
+
+    // Import SRT
+    document.getElementById('srtInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const blocks = String(reader.result || '').replace(/\r\n/g, '\n').trim().split(/\n\s*\n/);
+        const parsed = [];
+        for (const b of blocks) {
+          const lines = b.split('\n').map(l => l.trim()).filter(Boolean);
+          const tIdx = lines.findIndex(l => l.includes('-->'));
+          if (tIdx === -1) continue;
+          const [sStr, eStr] = lines[tIdx].split('-->').map(x => x.trim().split(' ')[0]);
+          const toSec = (str) => {
+            const p = str.replace(',', '.').split(':');
+            return p.length === 3 ? +p[0] * 3600 + +p[1] * 60 + +p[2] : +p[0] * 60 + +p[1];
+          };
+          parsed.push({ id: state.nextId++, start: toSec(sStr), end: toSec(eStr), text: formatThonlyText(lines.slice(tIdx + 1).join('\n')) });
+        }
+        if (parsed.length) { state.cues = parsed; renderCueList(); showToast(`${parsed.length} blocos importados.`); }
+      };
+      reader.readAsText(file, 'utf-8');
+    });
+
+    // Downloads & Copy
+    document.getElementById('btnDownloadSrt').addEventListener('click', () => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([buildSrtString()], { type: 'text/plain;charset=utf-8' }));
+      a.download = 'legenda_oficial.srt';
+      a.click();
+      showToast('Arquivo .SRT baixado!');
+    });
+
+    document.getElementById('btnDownloadTxt').addEventListener('click', () => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([buildSrtString()], { type: 'text/plain;charset=utf-8' }));
+      a.download = 'legenda_oficial.txt';
+      a.click();
+      showToast('Arquivo .TXT baixado para abrir no iPhone!');
+    });
+
+    document.getElementById('btnCopySrt').addEventListener('click', async () => {
+      const txt = buildSrtString();
+      try {
+        await navigator.clipboard.writeText(txt);
+      } catch (_) {
+        const ta = document.createElement('textarea');
+        ta.value = txt;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+      }
+      showToast('.SRT copiada para a área de transferência!');
+    });
+
+    // --- Canvas Drag Y Position (Mouse & Touch) ---
+    let isDraggingY = false;
+    function updateYFromClientY(clientY) {
+      const rect = canvas.getBoundingClientRect();
+      if (!rect.height) return;
+      const ratio = (clientY - rect.top) / rect.height;
+      state.yRatio = Math.min(0.92, Math.max(0.10, ratio));
+      yHeightBadge.textContent = `Altura Y: ${Math.round(state.yRatio * 100)}%`;
+    }
+
+    canvas.addEventListener('mousedown', (e) => {
+      isDraggingY = true;
+      updateYFromClientY(e.clientY);
+    });
+    window.addEventListener('mousemove', (e) => {
+      if (isDraggingY) updateYFromClientY(e.clientY);
+    });
+    window.addEventListener('mouseup', () => { isDraggingY = false; });
+
+    canvas.addEventListener('touchstart', (e) => {
+      if (e.touches[0]) {
+        isDraggingY = true;
+        updateYFromClientY(e.touches[0].clientY);
+      }
+    }, { passive: true });
+    canvas.addEventListener('touchmove', (e) => {
+      if (isDraggingY && e.touches[0]) updateYFromClientY(e.touches[0].clientY);
+    }, { passive: true });
+    canvas.addEventListener('touchend', () => { isDraggingY = false; });
+
+    // Optional Video Preview
+    document.getElementById('videoInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      videoEl.src = URL.createObjectURL(file);
+      videoEl.onloadedmetadata = () => {
+        state.hasVideo = true;
+        state.duration = videoEl.duration || 30;
+        seekBar.max = state.duration;
+        showToast('Vídeo carregado para prévia!');
+      };
+    });
+
+    document.querySelectorAll('.aspect-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.aspect = btn.dataset.aspect;
+        document.querySelectorAll('.aspect-btn').forEach(b => {
+          b.classList.remove('bg-zinc-100', 'text-zinc-950', 'font-semibold');
+          b.classList.add('bg-zinc-800', 'text-zinc-300', 'font-medium');
+        });
+        btn.classList.add('bg-zinc-100', 'text-zinc-950', 'font-semibold');
+        dropZone.classList.remove('aspect-[9/16]', 'aspect-[4/3]');
+        if (state.aspect === '4:3') { canvas.width = 960; canvas.height = 720; dropZone.classList.add('aspect-[4/3]'); }
+        else { canvas.width = 720; canvas.height = 1280; dropZone.classList.add('aspect-[9/16]'); }
+      });
+    });
+
+    btnPlayPause.addEventListener('click', () => {
+      state.isPlaying = !state.isPlaying;
+      btnPlayPause.textContent = state.isPlaying ? '❚❚' : '▶';
+      if (state.hasVideo) {
+        if (state.isPlaying) videoEl.play().catch(() => {});
+        else videoEl.pause();
+      }
+      lastTick = performance.now();
+    });
+
+    seekBar.addEventListener('input', () => {
+      state.currentTime = parseFloat(seekBar.value) || 0;
+      if (state.hasVideo) videoEl.currentTime = state.currentTime;
+      timeLabel.textContent = formatTimeShort(state.currentTime);
+    });
+
+    document.getElementById('toggleBW').addEventListener('click', () => {
+      state.bw = !state.bw;
+      document.getElementById('bwStatus').textContent = state.bw ? 'ON' : 'OFF';
+    });
+
+    document.getElementById('toggleFade').addEventListener('click', () => {
+      state.fade = !state.fade;
+      const el = document.getElementById('fadeStatus');
+      el.textContent = state.fade ? 'ON' : 'OFF';
+      el.classList.toggle('text-emerald-400', state.fade);
+      el.classList.toggle('text-zinc-400', !state.fade);
+    });
+
+    document.getElementById('saturationRange').addEventListener('input', (e) => {
+      state.saturation = parseInt(e.target.value, 10);
+      document.getElementById('saturationVal').textContent = `${state.saturation}%`;
+    });
+    document.getElementById('fontSizeRange').addEventListener('input', (e) => {
+      state.fontSize = parseInt(e.target.value, 10);
+      document.getElementById('fontSizeVal').textContent = `${state.fontSize}px`;
+    });
+
+    function drawFrame(now) {
+      const dt = (now - lastTick) / 1000;
+      lastTick = now;
+      if (state.isPlaying) {
+        if (state.hasVideo) state.currentTime = videoEl.currentTime;
+        else { state.currentTime += dt; if (state.currentTime >= state.duration) state.currentTime = 0; }
+        seekBar.value = state.currentTime;
+        timeLabel.textContent = formatTimeShort(state.currentTime);
+      }
+      const W = canvas.width, H = canvas.height;
+      ctx.save();
+      ctx.clearRect(0, 0, W, H);
+      ctx.filter = `grayscale(${state.bw ? 100 : 0}%) saturate(${state.bw ? 0 : state.saturation}%)`;
+      if (state.hasVideo && videoEl.readyState >= 2) {
+        const vw = videoEl.videoWidth || W, vh = videoEl.videoHeight || H;
+        const sc = Math.max(W / vw, H / vh);
+        ctx.drawImage(videoEl, (W - vw * sc) / 2, (H - vh * sc) / 2, vw * sc, vh * sc);
+      } else {
+        ctx.fillStyle = '#09090b';
+        ctx.fillRect(0, 0, W, H);
+      }
+      ctx.restore();
+
+      const active = state.cues.find(c => state.currentTime >= c.start && state.currentTime <= c.end);
+      if (active) {
+        let alpha = 1;
+        if (state.fade) {
+          const fadeDur = Math.min(0.16, (active.end - active.start) * 0.25);
+          if (fadeDur > 0.01) {
+            const fadeIn = Math.min(1, (state.currentTime - active.start) / fadeDur);
+            const fadeOut = Math.min(1, (active.end - state.currentTime) / fadeDur);
+            alpha = Math.max(0, Math.min(fadeIn, fadeOut));
+          }
+        }
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        const px = Math.round(state.fontSize * 1.6);
+        ctx.font = `600 ${px}px -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const y = H * state.yRatio;
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = Math.max(4, px * 0.16);
+        ctx.strokeStyle = 'rgba(0,0,0,0.92)';
+        ctx.strokeText(active.text, W / 2, y, W - 80);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(active.text, W / 2, y, W - 80);
+        ctx.restore();
+      }
+      requestAnimationFrame(drawFrame);
+    }
+
+    loadStateLocal();
+    renderCueList();
+    requestAnimationFrame(drawFrame);
+  </script>
+</body>
+</html>
